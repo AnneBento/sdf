@@ -1,0 +1,138 @@
+Entender o problema:
+	Falta de controle e visualização de finanças pessoais, saldo e categorias de gastos. 
+Levantar os requisitos funcionais e não funcionais: 
+	Requisitos Funcionais: 
+		1-Cadastrar Receitas
+		2-Cadastrar despesas
+		3-Somar ganhos e gastos
+		4-Calcular o saldo automaticamente
+		5-Gerar relatórios mensais
+		6-Mostrar as maiores categorias de gastos
+		7-Avisar contas perto de vencer
+		8-Editar e excluir receitas e despesas
+	Requisitos não funcionais: 
+		1-Usabilidade fácil
+		2-Segurança
+		3-Desempenho
+		4-Atualizar saldo rapidamente
+		5-Proteger os dados financeiros
+		6-Disponibilidade
+		7-Permitir acesso quando necessário
+		8-Confiabilidade
+		9-Calcular valores corretamente 
+Diagrama de caso de uso: 
+	
+Regras de negócio: 
+	Regra 1: Saldo sai de receitas menos despesas
+	Regra 2: Toda transação precisa de valor, data e categoria
+	Regra 3: Despesa só conta como paga se estiver marcada como paga 
+Diagrama de classes:
+	Receita
+	Despesa
+	Categoria
+	Conta bancária 
+	Parcela e cartão de crédito
+Modelagem
+	diagrama https://app.diagrams.net/#G1SdmsoH18ph4mt44zND_zOvGUzjzplReK#%7B%22pageId%22%3A%22id-0bqivIKoGYti9XWFG%22%7D
+Fluxo de como o usuário usa o sistema 
+	diagrama https://app.diagrams.net/#G1SdmsoH18ph4mt44zND_zOvGUzjzplReK#%7B%22pageId%22%3A%223AwjGLH1nPuFaSnkiJu8%22%7D
+Arquitetura
+	apresentação
+	lógica do sistema
+	camada de dados
+Implementação 
+
+
+
+Fluxo esperado do programa durante o seu desenvolvimento: 
+	Versões: 
+	- Programa em windows offline
+	- Programa com portabilidade para linux offline.
+	- Programa em WEB online.
+	- Programa em versão mobile (IOS, Android)
+Para ter um maior aproveitamento do código e das tecnologias que serão utilizadas
+durante o desenvolvimento, optei por iniciar este projeto utilizando a linguagem javaScript/typescript. 
+Para a interface Gráfica tecnologias como HTML5, CSS3, e um framework/biblioteca como REACT ou VUE.JS serão usados.
+Para o armazenamento de dados O banco de dados relacional SQL 
+
+
+Comandos utilizados para utilizar o typeScript
+npm install express pg dotenv -> serve para baixar módulos pg é relacionado ao banco de dados e o dotenv gerencia senhas e 
+configurações
+npm install -D typescript @types/node @types/express @types/pg ts-node.
+
+npx tsc --init -> ficheiro para as configurações do typeScript 
+
+após isso criamos um ficheiro .env para guardar as informações do nosso banco de dados e ficou assim: 
+BD_HOSPEDEIRO=localhost
+BD_PORTA=5432
+BD_USUARIO=postgres
+BD_SENHA=1234
+BD_NOME="FinançasPessoais"
+PORTA=3000
+Para fazermos uma conexão com nosso banco de dados criamos uma pasta chamada src e dentro dela um arquivo chamado
+bancoDados.ts
+
+começamos importando o dotenv para segurança dos dados e também o Pool para uma melhor conexão entre os bancos de dados.
+import {Pool} from 'pg';
+import dotenv from 'dotenv';
+
+depois ativamos as configurações:
+dotenv.congif();
+
+e fazemos uma caminha Pool para receber as informações do banco de dados e gerar conexão
+const conexaoBanco = new Pool(){
+    host: process.env.BD_HOSPEDEIRO,
+    port: Number(process.env.BD_PORTA),
+    user: process.env.BD_USUARIO,
+    password: process.env.BD_SENHA,
+    database: process.env.BD_NOME,
+} 
+a variável const vai garantir que os arquivos são sejam alterados. 
+logo em seguida fazemos uma função para ativar esse teste
+
+async function testarBanco(){
+	try{ const resposta = await testarBanco.query('SELECT NOW()');
+	     console.log('CONEXÃO FOI UM SUCESSO!');
+	     console.log('DATA/HORA DO BANCO DE DADOS: ', resposta.rows[0].now);
+	}catch(erro){
+		console.error('CONEXÃO NÃO ESTABELECIDA', erro);
+	}finally{
+		await testarBanco.end();
+	}
+}
+a função async mostra para o programa que essa função espera uma resposta e isso pode demorar um pouco.
+testarBanco();
+
+FEITO ISSO PASSAMOS PARA A ESTRUTURAÇÃO DA API 
+para isso precisamos criar um novo ficheiro chamado servidor.ts, que vai receber as requisições do navegador, frontend ..
+e ligar essa rota ao banco de dados.
+
+começamos importando o express que é o framework que vamos utilizar 
+import express from 'express';
+e também o dotenv para proteção dos dados do banco de dados
+import dotenv from 'dotenv'; 
+
+ativamos a configuração do dotenv
+dotenv.config();
+
+e criamos duas váriaveis que vão receber uma o framkework e outra a porta de entrada do banco de dados
+const app = express();
+const porta = process.env.PORTA || 3000;
+
+em seguida vamos fazer uso da aplicação app
+app.use(express.json();
+app.get('/',(requerimento, resposta) => {
+	resposta.send('API do sistema de finanças está rodando')
+});
+app.listen(porta, () => {
+    console.log(`Servidor rodando na porta ${porta}`);
+})
+
+express: Framework que facilita a criação do servidor do aplicativo e 
+das rotas (as conexões de entrada/saída).
+
+
+como você pode perceber o pool foi utilizado no arquivo bancoDados 
+enquanto o express foi utilizado no arquivo servidor 
+isso foi necessário para testar a eficacia de cada um separado. 
