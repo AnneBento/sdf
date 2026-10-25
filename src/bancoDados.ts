@@ -8,7 +8,7 @@ export const conexaoBanco = new Pool({
     host: process.env.BD_HOSPEDEIRO,
     port: Number(process.env.BD_PORTA),
     user: process.env.BD_USUARIO,
-    password: process.env.BD_SENHA,
+    password: String(process.env.BD_SENHA),
     database: process.env.BD_NOME,
 });
 

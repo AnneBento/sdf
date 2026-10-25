@@ -9,6 +9,10 @@ const porta = process.env.PORTA || 3000;
 
 app.use(express.json())
 
+
+
+
+
 // todas as categoria do banco de dados
 app.get('/categoria', async (requisicao, resposta) => {
     try{
@@ -19,15 +23,13 @@ app.get('/categoria', async (requisicao, resposta) => {
         resposta.status(500).json({mensagem: 'Erro interno no servidor'});
     }
 });
-
-
 // cadastro de categoria
 app.post('/categoria', async(resquisicao, resposta) => {
     try{
-        const { nome, tipo } = resquisicao.body;
+        const { nome } = resquisicao.body;
 
-        const comandoSQL = 'INSERT INTO "categoria" (nome, tipo) VALUES ($1, $2) RETURNING *';
-        const resultado = await conexaoBanco.query(comandoSQL, [nome, tipo]);
+        const comandoSQL = 'INSERT INTO "categoria" (nome) VALUES ($1) RETURNING *';
+        const resultado = await conexaoBanco.query(comandoSQL, [nome]);
 
         resposta.status(201).json(resultado.rows[0]);
     } catch(erro){
@@ -35,6 +37,51 @@ app.post('/categoria', async(resquisicao, resposta) => {
         resposta.status(500).json({mensagem: 'Erro ao cadastrar categoria'});
     }
 });
+
+
+
+
+
+// mostrar todas as despesas
+app.get('/despesas', async(requisicao, resposta) => {
+    try{
+        const comandoSQL = `
+            SELECT d.*, c.nome AS categoria
+            FROM "Despesas" d
+            LEFT JOIN "categoria" c ON c.idcategoria = d.idcategoria`;
+        
+        const resultado = await conexaoBanco.query(comandoSQL);
+        resposta.status(200).json(resultado.rows);
+    }catch(erro){
+        console.log('Erro ao listar as despesas', erro);
+        resposta.status(500).json({mensagem: 'Erro interno no servidor'})
+    }
+});
+
+
+
+
+
+// cadastrar despesas
+app.post('/despesas', async(requisicao, resposta) => {
+    try{
+        const { valor, data, descricao, idcategoria, idconta } = requisicao.body;
+
+        const comandoSQL = `
+            INSERT INTO "Despesas" (valor, data, descricao, idcategoria, idconta)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING *`;
+
+        const valores = [ valor, data, descricao, idcategoria, idconta ];
+        const resultado = await conexaoBanco.query(comandoSQL, valores);
+        resposta.status(201).json(resultado.rows);
+    }catch(erro){
+        console.log('Erro ao cadastrar despesa: ', erro);
+        resposta.status(500).json({mensagem: 'Erro ao cadastrar despesa'});
+    }
+})
+    
+
 
 
 app.listen(porta, () => {
