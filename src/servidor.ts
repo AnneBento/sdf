@@ -43,18 +43,26 @@ app.post('/categoria', async(resquisicao, resposta) => {
 
 
 // mostrar todas as despesas
-app.get('/despesas', async(requisicao, resposta) => {
-    try{
-        const comandoSQL = `
-            SELECT d.*, c.nome AS categoria
+// Leitura de todas as despesas
+app.get('/despesas', async (requisicao, resposta) => {
+    try {
+        const consultaSQL = `
+            SELECT 
+                d.iddespesa,
+                d.valor, 
+                d.data, 
+                d.descricao, 
+                d.idcategoria, 
+                d.idconta,
+                c.nome AS categoria
             FROM "Despesas" d
             LEFT JOIN "categoria" c ON c.idcategoria = d.idcategoria`;
-        
-        const resultado = await conexaoBanco.query(comandoSQL);
+
+        const resultado = await conexaoBanco.query(consultaSQL);
         resposta.status(200).json(resultado.rows);
-    }catch(erro){
+    } catch (erro) {
         console.log('Erro ao listar as despesas', erro);
-        resposta.status(500).json({mensagem: 'Erro interno no servidor'})
+        resposta.status(500).json({ mensagem: 'Erro interno no servidor' });
     }
 });
 // cadastrar despesas
@@ -114,6 +122,65 @@ app.post('/contas', async(requisicao, resposta) => {
         resposta.status(500).json({ mensagem: erro.message || 'Erro ao cadastrar conta Bancária.'});
     }
 });
+
+
+
+
+
+// editar despesa por ID
+app.put('/despesas/:id', async (requisicao, resposta) => {
+    try {
+        const { id } = requisicao.params;
+        const { valor, data, descricao, idcategoria, idconta } = requisicao.body;
+
+        const comandoSQL = `
+            UPDATE "Despesas"
+            SET valor = $1, data = $2, descricao = $3, idcategoria = $4, idconta = $5
+            WHERE iddespesa = $6
+            RETURNING *`;
+
+        const valores = [valor, data, descricao, idcategoria, idconta, id];
+        const resultado = await conexaoBanco.query(comandoSQL, valores);
+
+        if (resultado.rowCount === 0) {
+            return resposta.status(404).json({ mensagem: 'Despesa não encontrada.' });
+        }
+
+        resposta.status(200).json(resultado.rows[0]);
+    } catch (erro: any) {
+        console.error('Erro ao atualizar despesa: ', erro);
+        resposta.status(500).json({ mensagem: erro.message || 'Erro ao atualizar despesa.' });
+    }
+});
+
+
+
+
+
+// deletar despesa por ID
+app.delete('/despesas/:id', async(requisicao, resposta) => {
+    try{
+        const {id} = requisicao.params;
+
+        const comandoSQL = `
+            DELETE FROM "Despesas"
+            WHERE iddespesa = $1
+            RETURNING *`;
+
+        const resultado = await conexaoBanco.query(comandoSQL, [id]);
+        if(resultado.rowCount === 0){
+            return resposta.status(404).json({mensagem: 'Despesa não encontrada.'});
+
+        }
+
+        resposta.status(200).json({ mensagem: 'Despesa removida com sucesso.'});
+
+    } catch(erro:any){
+        console.error('Erro ao deletar despesa: ', erro);
+        resposta.status(500).json({ mensagem: erro.message || 'Erro ao deletar despesa.'});
+    }
+});
+
 
 
 
