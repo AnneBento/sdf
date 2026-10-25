@@ -57,11 +57,6 @@ app.get('/despesas', async(requisicao, resposta) => {
         resposta.status(500).json({mensagem: 'Erro interno no servidor'})
     }
 });
-
-
-
-
-
 // cadastrar despesas
 app.post('/despesas', async(requisicao, resposta) => {
     try{
@@ -79,8 +74,47 @@ app.post('/despesas', async(requisicao, resposta) => {
         console.log('Erro ao cadastrar despesa: ', erro);
         resposta.status(500).json({mensagem: 'Erro ao cadastrar despesa'});
     }
-})
+});
     
+
+
+
+
+// listar todas as contas cadastradas e seus respectivos saldos
+app.get('/contas', async(requisicao, resposta) => {
+    try{
+        const comandoSQL = 
+        `SELECT "idConta", nome, "saldoInicial"
+        FROM "contaBancaria"`;
+
+        const resultado = await conexaoBanco.query(comandoSQL);
+        resposta.status(200).json(resultado.rows);
+
+    }catch(erro){
+        console.log('Erro ao realizar consulta: ',erro);
+        resposta.status(500).json({mensagem: 'Erro ao listar contas cadastradas.'});
+    }
+});
+// cadastrar conta
+app.post('/contas', async(requisicao, resposta) => {
+    try{
+        const { nome, saldoInicial } = requisicao.body
+
+        const comandoSQL = `
+            INSERT INTO "contaBancaria" (nome, "saldoInicial")
+            VALUES($1, $2)
+            RETURNING *`;
+
+        const valores = [nome, saldoInicial];
+        const resultado = await conexaoBanco.query(comandoSQL, valores);
+
+        resposta.status(201).json(resultado.rows[0]);
+    } catch(erro: any){
+        console.error('Erro ao cadastrar conta: ', erro);
+        resposta.status(500).json({ mensagem: erro.message || 'Erro ao cadastrar conta Bancária.'});
+    }
+});
+
 
 
 
