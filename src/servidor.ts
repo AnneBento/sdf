@@ -185,6 +185,78 @@ app.delete('/despesas/:id', async(requisicao, resposta) => {
 
 
 
+// resumo financeiro
+app.get('/dashboard', async (requisicao, resposta) => {
+    try{
+        const sqlBancos = `SELECT "idConta", nome, "saldoInicial" FROM "contaBancaria"`;
+        const resposta_Banco = await conexaoBanco.query(sqlBancos);
+
+        const ultimas_movimentacoes = 
+            `SELECT 
+                d.iddespesa AS id,
+                'despesa' AS tipo,
+                d.valor,
+                d.data,
+                d.descricao,
+                c.nome AS categoria
+            FROM "Despesas" d
+            LEFT JOIN "categoria" c ON c.idcategoria = d.idcategoria
+            WHERE d.data >= CURRENT_DATE - INTERVAL '15 days'
+            UNION ALL 
+
+            SELECT
+                r.idreceita AS id,
+                'receita' AS tipo,
+                r.valor,
+                r.data,
+                r.descricao,
+                'Receita' AS categoria
+            FROM "Receitas" r 
+            WHERE r.data >= CURRENT_DATE - INTERVAL '15 days'
+            
+            ORDER BY data DESC `;   
+
+            const resMovimentacoes = await conexaoBanco.query(ultimas_movimentacoes);
+
+            const total_saldos = resposta_Banco.rows.reduce((acc, conta) => acc + parseFloat(conta.saldoInicial), 0);
+
+            resposta.status(200).json({
+                saldoTotal: total_saldos,
+                bancos: resposta_Banco.rows,
+                ultimas_movimentacoes: resMovimentacoes.rows
+            });
+    }catch(erro: any){
+        console.error('Erro ao carregar dashboard: ', erro);
+        resposta.status(500).json({mensagem: 'Erro ao carregar dados do dashboard.'});
+    }
+});
+
+
+
+
+
+//post 
+app.post('/receitas', async (requisicao, resposta) => {
+    try{
+        const{ valor, data, descricao, idconta } = requisicao.body;
+
+        const comandoSQL = `
+            INSERT INTO "Receitas" (valor, data, descricao, idconta)
+            VALUES($1, $2, $3, $4)
+            RETURNING *`;
+
+        const resultado = await conexaoBanco.query(comandoSQL, [valor, data, descricao, idconta]);
+        resposta.status(201).json(resultado.rows[0]);
+    }catch(erro: any){
+        console.error('Erro ao cadastrar receita: ', erro);
+        resposta.status(500).json({mensagem: erro.message || 'Erro ao cadastrar receita.'});
+    }
+});
+
+
+
+
+
 app.listen(porta, () => {
     console.log(`Servidor a rodar com porta ${porta}`);
 });
