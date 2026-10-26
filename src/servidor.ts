@@ -152,11 +152,6 @@ app.put('/despesas/:id', async (requisicao, resposta) => {
         resposta.status(500).json({ mensagem: erro.message || 'Erro ao atualizar despesa.' });
     }
 });
-
-
-
-
-
 // deletar despesa por ID
 app.delete('/despesas/:id', async(requisicao, resposta) => {
     try{
@@ -230,12 +225,7 @@ app.get('/dashboard', async (requisicao, resposta) => {
         resposta.status(500).json({mensagem: 'Erro ao carregar dados do dashboard.'});
     }
 });
-
-
-
-
-
-//post 
+//entrada de receitas
 app.post('/receitas', async (requisicao, resposta) => {
     try{
         const{ valor, data, descricao, idconta } = requisicao.body;
