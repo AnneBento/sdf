@@ -77,7 +77,7 @@ app.post('/despesas', async(requisicao, resposta) => {
 
         const valores = [ valor, data, descricao, idcategoria, idconta ];
         const resultado = await conexaoBanco.query(comandoSQL, valores);
-        resposta.status(201).json(resultado.rows);
+        resposta.status(201).json(resultado.rows[0]);
     }catch(erro){
         console.log('Erro ao cadastrar despesa: ', erro);
         resposta.status(500).json({mensagem: 'Erro ao cadastrar despesa'});
@@ -183,63 +183,109 @@ app.delete('/despesas/:id', async(requisicao, resposta) => {
 // resumo financeiro
 app.get('/dashboard', async (requisicao, resposta) => {
     try{
-        const sqlBancos = `SELECT "idConta", nome, "saldoInicial" FROM "contaBancaria"`;
+        const sqlBancos = `
+            SELECT "idConta", nome, "saldoInicial"
+            FROM "contaBancaria"`;
+        
         const resposta_Banco = await conexaoBanco.query(sqlBancos);
 
-        const ultimas_movimentacoes = 
-            `SELECT 
+        const ultimas_movimentacoes = `
+            SELECT
                 d.iddespesa AS id,
                 'despesa' AS tipo,
                 d.valor,
                 d.data,
                 d.descricao,
                 c.nome AS categoria
-            FROM "Despesas" d
+            FROM "Despesas" d 
             LEFT JOIN "categoria" c ON c.idcategoria = d.idcategoria
             WHERE d.data >= CURRENT_DATE - INTERVAL '15 days'
-            UNION ALL 
-
-            SELECT
+            
+            UNION ALL
+            
+            SELECT 
                 r.idreceita AS id,
                 'receita' AS tipo,
-                r.valor,
+                r.valornumerico AS valor,
                 r.data,
                 r.descricao,
-                'Receita' AS categoria
-            FROM "Receitas" r 
+                'Receita' AS categoria 
+            FROM "receita" r
             WHERE r.data >= CURRENT_DATE - INTERVAL '15 days'
             
-            ORDER BY data DESC `;   
+            ORDER BY data DESC`;      
+            
+        
+        const resMovimentacoes = await conexaoBanco.query(ultimas_movimentacoes);
 
-            const resMovimentacoes = await conexaoBanco.query(ultimas_movimentacoes);
+        const sqlTotalDespesas = `
+            SELECT COALESCE(SUM(valor), 0) AS total
+            FROM "Despesas"`;
+        const sqlTotalReceita = `
+            SELECT COALESCE(SUM(valornumerico), 0) AS total
+            FROM "receita"`;
+        
+        const resTotalDespesas = await conexaoBanco.query(sqlTotalDespesas);
+        const resTotalReceita = await conexaoBanco.query(sqlTotalReceita);
 
-            const total_saldos = resposta_Banco.rows.reduce((acc, conta) => acc + parseFloat(conta.saldoInicial), 0);
+        const totalInicial = resposta_Banco.rows.reduce((acc, conta) => acc + parseFloat(conta.saldoInicial), 0);
+        const totalDespesas = parseFloat(resTotalDespesas.rows[0].total);
+        const totalReceitas = parseFloat(resTotalReceita.rows[0].total);
 
-            resposta.status(200).json({
-                saldoTotal: total_saldos,
-                bancos: resposta_Banco.rows,
-                ultimas_movimentacoes: resMovimentacoes.rows
-            });
-    }catch(erro: any){
-        console.error('Erro ao carregar dashboard: ', erro);
-        resposta.status(500).json({mensagem: 'Erro ao carregar dados do dashboard.'});
+        const saldoTotalReal = (totalInicial + totalReceitas) - totalDespesas;
+
+        resposta.status(200).json({
+            saldoTotal: saldoTotalReal,
+            bancos: resposta_Banco.rows,
+            ultimas_movimentacoes: resMovimentacoes.rows
+        });
+    } catch (erro: any) {
+        console.error('Erro ao carregar dados do dashboard: ', erro);
+        resposta.status(500).json({ mensagem: 'Erro interno ao carregar o dashboard.' });
     }
 });
-//entrada de receitas
+
+
+
+
+
+// Listar apenas todas as receitas
+app.get('/receitas', async (requisicao, resposta) => {
+    try { 
+        const comandoSQL = `
+            SELECT 
+                r.idreceita,
+                r.valornumerico AS valor,
+                r.data,
+                r.descricao,
+                r.idconta,
+                c.nome AS banco
+            FROM "receita" r
+            LEFT JOIN "contaBancaria" c ON c."idConta" = r.idconta
+            ORDER BY r.data DESC;`;
+
+        const resultado = await conexaoBanco.query(comandoSQL);
+        resposta.status(200).json(resultado.rows);
+    } catch (erro: any) {
+        console.error('Erro ao listar receitas: ', erro);
+        resposta.status(500).json({ mensagem: 'Erro ao listar receitas.' });
+    }
+});
+// entrada de receitas
 app.post('/receitas', async (requisicao, resposta) => {
-    try{
-        const{ valor, data, descricao, idconta } = requisicao.body;
+    try {
+        const { valor, data, descricao, idconta } = requisicao.body;
 
         const comandoSQL = `
-            INSERT INTO "Receitas" (valor, data, descricao, idconta)
-            VALUES($1, $2, $3, $4)
-            RETURNING *`;
+            INSERT INTO "receita" (valornumerico, data, descricao, idconta)
+            VALUES ($1, $2, $3, $4)
+            RETURNING idreceita, valornumerico AS valor, data, descricao, idconta`;
 
         const resultado = await conexaoBanco.query(comandoSQL, [valor, data, descricao, idconta]);
         resposta.status(201).json(resultado.rows[0]);
-    }catch(erro: any){
+    } catch (erro: any) {
         console.error('Erro ao cadastrar receita: ', erro);
-        resposta.status(500).json({mensagem: erro.message || 'Erro ao cadastrar receita.'});
+        resposta.status(500).json({ mensagem: erro.message || 'Erro ao cadastrar receita.' });
     }
 });
 
