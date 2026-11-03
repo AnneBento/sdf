@@ -182,7 +182,7 @@ app.delete('/despesas/:id', async(requisicao, resposta) => {
 
 // resumo financeiro
 app.get('/dashboard', async (requisicao, resposta) => {
-    try{
+    try {
         const sqlBancos = `
             SELECT "idConta", nome, "saldoInicial"
             FROM "contaBancaria"`;
@@ -215,7 +215,6 @@ app.get('/dashboard', async (requisicao, resposta) => {
             
             ORDER BY data DESC`;      
             
-        
         const resMovimentacoes = await conexaoBanco.query(ultimas_movimentacoes);
 
         const sqlTotalDespesas = `

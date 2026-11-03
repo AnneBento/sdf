@@ -427,3 +427,13 @@ app.get('/receitas', async (requisicao, resposta) => {
 		resposta.status(500).json({mensagem: 'Erro ao listar receitas'});
 	}
 });
+
+
+
+Com o back end pronto e funcional, finalizamos essa sessão utilizando uma API em node.js com express e postgreSQL que expõe rotas HTTP do nosso CRUD. 
+
+-------------------------------------------------Desenvolvendo a comunicação entre backend e frontend
+
+
+
+
