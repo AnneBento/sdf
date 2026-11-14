@@ -1,30 +1,31 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { conexaoBanco } from './bancoDados.js';
+import cors from 'cors';
 
 dotenv.config();
 
 const app = express();
 const porta = process.env.PORTA || 3000;
 
-app.use(express.json())
-
+app.use(cors());
+app.use(express.json());
 
 
 
 
 // todas as categoria do banco de dados
-app.get('/categoria', async (requisicao, resposta) => {
+app.get('/categorias', async (requisicao, resposta) => {
     try{
-        const resultado = await conexaoBanco.query('SELECT * FROM "categoria"');
+        const resultado = await conexaoBanco.query('SELECT idcategoria, nome FROM "categoria"');
+        resposta.status(200).json(resultado.rows);
         resposta.json(resultado.rows);
     }catch(erro){
-        console.error('Erro ao buscar categoria: ', erro);
-        resposta.status(500).json({mensagem: 'Erro interno no servidor'});
+        resposta.status(500).json({mensagem: 'Erro ao buscar categorias'});
     }
 });
 // cadastro de categoria
-app.post('/categoria', async(resquisicao, resposta) => {
+app.post('/categorias', async(resquisicao, resposta) => {
     try{
         const { nome } = resquisicao.body;
 
@@ -209,8 +210,9 @@ app.get('/dashboard', async (requisicao, resposta) => {
                 r.valornumerico AS valor,
                 r.data,
                 r.descricao,
-                'Receita' AS categoria 
+                COALESCE(c.nome, 'Receita') AS categoria 
             FROM "receita" r
+            LEFT JOIN "categoria" c ON c.idcategoria = r.idcategoria
             WHERE r.data >= CURRENT_DATE - INTERVAL '15 days'
             
             ORDER BY data DESC`;      
@@ -273,14 +275,14 @@ app.get('/receitas', async (requisicao, resposta) => {
 // entrada de receitas
 app.post('/receitas', async (requisicao, resposta) => {
     try {
-        const { valor, data, descricao, idconta } = requisicao.body;
+        const { valornumerico, data, descricao, idconta, idcategoria} = requisicao.body;
 
         const comandoSQL = `
-            INSERT INTO "receita" (valornumerico, data, descricao, idconta)
-            VALUES ($1, $2, $3, $4)
-            RETURNING idreceita, valornumerico AS valor, data, descricao, idconta`;
+            INSERT INTO "receita" (valornumerico, data, descricao, idconta, idcategoria)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING idreceita, valornumerico AS valor, data, descricao, idconta, idcategoria`;
 
-        const resultado = await conexaoBanco.query(comandoSQL, [valor, data, descricao, idconta]);
+        const resultado = await conexaoBanco.query(comandoSQL, [valornumerico, data, descricao, idconta, idcategoria]);
         resposta.status(201).json(resultado.rows[0]);
     } catch (erro: any) {
         console.error('Erro ao cadastrar receita: ', erro);
