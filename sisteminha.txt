@@ -56,6 +56,10 @@ Para a interface Gráfica tecnologias como HTML5, CSS3, e um framework/bibliotec
 Para o armazenamento de dados O banco de dados relacional SQL 
 
 
+
+
+
+
 Comandos utilizados para utilizar o typeScript
 npm install express pg dotenv -> serve para baixar módulos pg é relacionado ao banco de dados e o dotenv gerencia senhas e 
 configurações
@@ -391,11 +395,11 @@ app.post('/receitas', async (requisicao, resposta) => {
         const{ valor, data, descricao, idconta } = requisicao.body;
 
         const comandoSQL = `
-            INSERT INTO "Receitas" (valor, data, descricao, idconta)
+            INSERT INTO "Receita" (valornumerico, data, descricao, idconta)
             VALUES($1, $2, $3, $4)
             RETURNING *`;
 
-        const resultado = await conexaoBanco.query(comandoSQL, [valor, data, descricao, idconta]);
+        const resultado = await conexaoBanco.query(comandoSQL, [valornumerico, data, descricao, idconta]);
         resposta.status(201).json(resultado.rows[0]);
     }catch(erro: any){
         console.error('Erro ao cadastrar receita: ', erro);
@@ -432,7 +436,274 @@ app.get('/receitas', async (requisicao, resposta) => {
 
 Com o back end pronto e funcional, finalizamos essa sessão utilizando uma API em node.js com express e postgreSQL que expõe rotas HTTP do nosso CRUD. 
 
--------------------------------------------------Desenvolvendo a comunicação entre backend e frontend
+------------------------------------------------------Desenvolvendo a comunicação entre backend e frontend
+
+Vamos começar essa estapa instalando e configurando o CORS, que será necessário para a comunicação entre o backend e o frontend. comandos: 
+npm install cors
+npm install -D @types/cors
+No arquivo servidor.ts (onde estão as nossas rotas e definição do banco de dados ) vamos importar e ativar o cors.Comando
+
+import cors from 'cors';
+
+ativando o cors. comando:
+
+app.use(cors());
+
+------------------------------------------------------Criando frontend e estabelecendo conexão com REACT + Vite e fazendo ponte com o Axios 
+Para manter nosso código limpo e facilitar quando formos utilizar o sistema em diferentes SO vamos separar o front-end do back-end
+
+1. criar pasta front-end e a ponte de comunicação: 
+Deixamos o servidor backend rodando em outro terminal (resgatando comando para isso: npx tsx src/servidor.ts ISSO NA RAIZ DO PROJETO,
+SE NÃO O DOTENV NÃO CONSEGUE PROCURAR O .ENV PARA REALIZAR A COMUNICAÇÃO com o banco de dados)
+
+Na raiz do projeto(C:\Users\Cris\Desktop\sistema de financas>)crie o projeto React + TypeScript: 
+
+
+npm create vite@latest frontend -- --template react-ts 
+
+
+chamamos o vite no projeto "create vite@lateste" que é uma ferramenta mais rápida para empacotamento de dependencias e desenvolvimento web 
+frontend é o nome da nossa pasta  e --template -react-ts diz ao vite qual é o modelo que vamos usar dentro da pasta, nesse caso estamos dizendo pra ele
+que o modelo configurado com o React e typescript. 
+
+
+digitado o comando ele vai pedir para instalar alguns pacotes se necessário, você só precisa aceitar.
+Logo em seguida temos o seguinte: 
+
+create-vite v9.3.4
+
+│
+◆  Which linter to use?
+│  ● Oxlint
+│  ○ ESLint
+│  ↑/↓ to navigate • Enter: confirm
+└
+é apenas uma pergunta interativa  para escolher qual ferramenta vai verificar erros de escrita no código (linter).
+no caso qualquer uma das duas funciona bem para o projeto.
+
+depois vamos entrar na pasta frontend (cd frontend) e baixar o AXIOS: npm install axios
+
+Axios é a biblioteca que faz a comunicação entre o frontend (React) e o backend (Node/Express). O react fica responsável
+por capturar os cliques do usuário na tela, e o axios leva e trás os dados que esses cliques precisam.
+
+Primeira coisa, vamos fazer uma ponte, ela deve exibir os dados do dashboard na tela. Dentro do src no front-end vamos 
+criar uma pasta chamada SERVICES e add dentro dela um arquivo chamado API.TS.
+
+import axios from 'axios';
+
+export const api = create.axios({
+	baseURL: 'http://localhost:3000'
+})
+depois rode o comando: npm run dev 
+para abrir o servidor. ➜  Local:   http://localhost:5173/
+esse é o servidor front end.
+
+Sabemos até agora que o servidor backend é 3000 e o front end é 5173.
+
+Para buscar os dados do dashboard vamos no arquivo App.tsx localizado dentro da nossa pasta no front-end, lá tem um 
+cod pronto padrão do vite, você apaga e reescreve o seu modelo 
+
+Primeiro as importações: 
+import {useEffect, useState} from 'react';
+ambas são duas ferramentas do react, use Effect é utilizada quando queremos que uma função seja executada assim que a página abre, no caso, estamos falando do 
+dashboard
+useState é referenciada quando queremos criar variáveis na memória da tela para guardar o saldo, listar os bancos e movimentações.
+
+import {api} from './services/api'; nem preciso dizer que é para estabeler a conexão.
+
+
+
+interface movimentacao {
+	id: number;
+	tipo: 'despesa'|'receita';
+	valor: string;
+	data: string;
+	descricao: string;
+	categoria: string;
+}
+a interface é uma regra do typeScript, ele serve para definir os campos que vem dentro dos objetos que serão chamados lá o get/dashboard 
+
+
+
+
+export function app(){
+	const [saldo, setSaldo] = useState(0); <- inicia o valor saldo total com 0!
+	const [movimentacao, setMovimentacao] = useState();
+
+	
+	async function carregarDashboard(){
+		try{
+			const resposta = await api.get('/dashboard');
+			setSaldo(resposta.data.saldoTotal);
+			setMovimentacao(resposta.data.ultimas_movimentacoes);
+		} catch(erro) {
+			console.error('Erro ao buscar dashboard:', erro);
+		}
+	}
+	
+
+	useEffect(() => {
+		carregarDashboard(); ESSA FUNÇÃO CHAMA A FUNÇÃO ANTERIOR QUE HAVIAMOS FEITO DENTRO DO APP, PARA SER EXECUTADO ASSIM QUE ABRIMOS O SITE
+	}, []);
+	
+
+
+	RETORNO VISUAL DA APLICAÇÃO
+	return (
+		<div>
+			<h1> Minhas finanças </h1>
+			<h2> Saldo Atual: R${saldo.toFixed(2)} </h2>
+			
+			<h3>Últimas Movimentações: </h3>
+      
+      <ul> 
+
+        {movimentacao.map((x) => (
+
+          <li key={`${x.tipo} - ${x.id}`}>
+
+            <strong>{x.tipo}</strong> - {x.descricao} - {x.categoria} R$ {x.valor}
+
+          </li>
+        ))}
+      </ul>
+		</div>
+	)
+}
+
+export default app; 
+
+
+------------------------------------------------------------------ adicionando botão para adicionar despesa/receita 
+(adicionando novos estados dentro da função app)
+
+const [saldo, setSaldo] = useState<number>(0);
+  const [movimentacao, setMovimentacao] = useState<movimentacao[]>([]);
+
+  const [modalAberto, setModalAberto] = useState(false);
+  const [tipoAdicionado, setTipoAdicionado] = useState<'despesa' | 'receita'>('despesa');
+
+  const [bancos, setBancos] = useState<bancos[]>([]);
+  const [categorias, setCategorias] = useState<categorias[]>([]);
+
+  const [valor, setValor] = useState('');
+  const [data, setData] = useState('');
+  const [idcategoria, setIdcategoria] = useState('');
+  const [conta, setConta] = useState('');
+  const [descricao, setDescricao] = useState('');
+
+(adicionando novas interfaces de acordo com 
+interface bancos{
+  idConta: number; 
+  nome: string;
+}
+interface categorias{
+  idcategoria: number;
+  nome: string
+}
+
+
+atualizando função dashboard 
+async function carregarDashboard(){
+    try{
+      const resposta = await api.get('/dashboard');
+      setSaldo(resposta.data.saldoTotal);
+      setMovimentacao(resposta.data.ultimas_movimentacoes);
+      setBancos(resposta.data.bancos);
+
+      const resCategorias = await api.get('/categorias');
+      setCategorias(resCategorias.data);
+    }catch(erro){
+      console.error('Erro ao buscar dados do dashboard:', erro);
+    }
+  }
+
+
+async function salvarMovimentacao(e: React.FormEvent){
+    e.preventDefault();
+    try {
+      if (tipoAdicionado === 'despesa'){
+        await api.post('/despesas', {
+          valor: Number(valor),
+          data,
+          descricao,
+          idcategoria: Number(idcategoria),
+          idconta: Number(idconta),
+        });
+      } else {
+        await api.post('/receitas', {
+          valor: Number(valor),
+          data,
+          descricao,
+          idcategoria: Number(idcategoria),
+          idconta: Number(idconta),
+        });
+      }
+
+
+setModalAberto(false);
+      setDescricao('');
+      setValor('');
+      setData('');
+      setIdcategoria('');
+      setIdConta('');
+      carregarDashboard();
+    } catch (erro){
+      console.error('Erro ao salvar:', erro);
+    }
+  } 
+		
+	
+		
+retorno visual: 
+<button onClick={() => setModalAberto(true)}>Adicionar</button>
+      
+      {modalAberto && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgb(236, 234, 212)', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
+          
+          <form onSubmit={salvarMovimentacao} style={{ background: '#fff', color: '#000', padding: '20px', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '10px'}}>
+
+            <h3>Cadastrar({tipoAdicionado})</h3>
+
+            <div> 
+              <button type="button" onClick={() => setTipoAdicionado('despesa')}> Despesa </button>
+              <button type="button" onClick={() => setTipoAdicionado('receita')}> Receita </button>
+            </div>
+
+            <input type="text" placeholder="Descrição" value={descricao} onChange={(e) => setDescricao(e.target.value)}required/>
+
+            <input type="number" step="0.01" placeholder="Valor" value={valor} onChange={(e) => setValor(e.target.value)}required/>
+
+            <input type="date" value={data} onChange={(e) => setData(e.target.value)}required/>
+
+
+            <select value={idcategoria} onChange={(e) => setIdcategoria(e.target.value)} required>
+            <option value="">Selecione a categoria</option>
+            {categorias.map((c) => (
+              <option key={c.idcategoria} value={c.idcategoria}>{c.nome}</option>
+            ))}
+          </select>
+
+
+          <select value={idconta} onChange={(e) => setIdConta(e.target.value)} required>
+            <option value="">Selecione a conta</option>
+            {bancos.map((b) => (
+              <option key={b.idConta} value={b.idConta}>{b.nome}</option>
+            ))}
+          </select>
+            
+
+            <button type="submit">Salvar</button>
+            <button type="button" onClick={() => setModalAberto(false)}>Cancelar</button>
+
+
+          </form>		
+
+
+		
+	
+
+
 
 
 
