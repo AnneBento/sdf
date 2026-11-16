@@ -14,6 +14,7 @@ app.use(express.json());
 
 
 
+
 // todas as categoria do banco de dados
 app.get('/categorias', async (requisicao, resposta) => {
     try{
@@ -24,6 +25,7 @@ app.get('/categorias', async (requisicao, resposta) => {
         resposta.status(500).json({mensagem: 'Erro ao buscar categorias'});
     }
 });
+
 // cadastro de categoria
 app.post('/categorias', async(resquisicao, resposta) => {
     try{
@@ -38,6 +40,42 @@ app.post('/categorias', async(resquisicao, resposta) => {
         resposta.status(500).json({mensagem: 'Erro ao cadastrar categoria'});
     }
 });
+
+//editar categoria
+app.put('/categorias:id', async(requisicao, resposta) => {
+    try{
+        const {id} = requisicao.params;
+        const {nome} = requisicao.body;
+
+        const comandoSQL = `
+            UPDATE "categoria"
+            SET "nome" = $1
+            WHERE "idcategoria = $2
+            RETURNING *`
+
+        const resultado = await conexaoBanco.query(comandoSQL, [nome, id]);
+        resposta.status(200).json(resultado.rows[0]);
+    }catch(erro: any){
+        console.log('Erro ao editar categoria', erro);
+        resposta.status(500).json({mensagem: erro.message || 'Erro ao editar categoria'});
+    }
+});
+
+//deletar categoria
+app.delete('/categorias:id', async(requisicao, resposta) => {
+    try{
+        const {id} = requisicao.params;
+        const comandoSQL = `
+            DELETE FROM "categoria" WHERE "idcategoria" = $1`
+            
+            await conexaoBanco.query(comandoSQL,[id]);
+            resposta.status(204).send;
+
+    }catch(erro: any){
+        console.error('Erro ao deletar categoria: ', erro);
+        resposta.status(500).json({mensagem: 'Não é possível excluir categoria em uso'});
+    }
+})
 
 
 
@@ -89,6 +127,7 @@ app.post('/despesas', async(requisicao, resposta) => {
 
 
 
+
 // listar todas as contas cadastradas e seus respectivos saldos
 app.get('/contas', async(requisicao, resposta) => {
     try{
@@ -104,6 +143,7 @@ app.get('/contas', async(requisicao, resposta) => {
         resposta.status(500).json({mensagem: 'Erro ao listar contas cadastradas.'});
     }
 });
+
 // cadastrar conta
 app.post('/contas', async(requisicao, resposta) => {
     try{
@@ -123,6 +163,43 @@ app.post('/contas', async(requisicao, resposta) => {
         resposta.status(500).json({ mensagem: erro.message || 'Erro ao cadastrar conta Bancária.'});
     }
 });
+
+// editar contaa
+app.put('/contas:id', async(requisicao,resposta) => {
+    try{
+        const { id } = requisicao.params;
+        const {nome, saldoInicial} = requisicao.body;
+
+        const comandoSQL = `
+            UPDATE "contaBancaria"
+            SET "nome" = $1, "saldoInicial" = $2
+            WHERE "idConta" = $3
+            RETURNING *`
+        const resultado = await conexaoBanco.query(comandoSQL, [nome, saldoInicial, id]);
+        resposta.status(200).json(resultado.rows[0]);
+    }catch(erro:any){
+        console.error('Erro ao editar conta: ', erro);
+        resposta.status(500).json({mensagem: erro.mensage || 'Erro ao editar conta Bancária.'})
+    }
+})
+
+//deletar conta
+app.delete('/conta:id', async(requisicao, resposta) => {
+    try{
+        const {id} = requisicao.params;
+    
+        const comandoSQL = `
+            DELETE FROM "contaBancaria" 
+            WHERE "idConta" = $1`;
+    
+        await conexaoBanco.query(comandoSQL, [id]);
+        resposta.status(204).send();
+    }catch(erro: any){
+        console.error('Erro ao deletar conta: ', erro);
+        resposta.status(500).json({mensagem: 'Não é possível excluir conta com movimentações vinculadas.'});
+    }
+});
+
 
 
 
