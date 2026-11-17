@@ -1,22 +1,6 @@
 import {useEffect, useState} from 'react';
 import {api} from './services/api';
-
-interface movimentacao{
-  id:number;
-  tipo: 'despesa' | 'receita';
-  valor: string | number;
-  data: string;
-  descricao: string;
-  categoria: string;
-}
-interface bancos{
-  idConta: number; 
-  nome: string;
-}
-interface categorias{
-  idcategoria: number;
-  nome: string
-}
+import import { GerenciadorCadastros } from './GerenciadorCadastros';
 
 
 export function App(){
@@ -66,7 +50,7 @@ export function App(){
         });
       } else {
         await api.post('/receitas', {
-          valor: Number(valor),
+          valornumerico: Number(valor),
           data,
           descricao,
           idcategoria: Number(idcategoria),

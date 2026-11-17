@@ -700,11 +700,80 @@ retorno visual:
           </form>		
 
 
+-------------------------------------------------------------------------------------------adicionando novas rotas para categoria e contas(put e delete)
+//editar categoria
+app.put('/categorias:id', async(requisicao, resposta) => {
+	try{
+		const {id} = requisicao.params;
+		const {nome} = requisicao.body;
 		
+		const comandoSQL = `
+			UPDATE "categoria" SET "nome" = $1 WHERE "idcategoria" = $2 RETURNING *
+		`			
+		const resultado = await conexaoBanco.query(comandoSQL, [id, nome]);
+		resposta.status(200).json(resultado.rows[0]);
+	}catch(erro: any){	
+		console.log('Erro ao editar categoria', erro);
+		resposta.status(500).json({mensagem: erro.message || 'Erro ao digitar categoria'});
+	}
+    }
+
+//deletar categoria
+app.deletar('/categorias:id', async(requisicao, resposta) => {
+	try{
+		const {id} = requisicao.params;
+		const comandoSQL = `
+			DELETE FROM "categoria" WHERE "idcategoria" =$1;`
+			
+		await conexaoBanco.query(comandoSQL, [id]);
+		resposta.status(200).send();
+	}catch(erro: any){
+		console.error('Erro ao deletar categoria', erro)
+		resposta.status(500).json({mensagem: 'Não é possível excluir categoria em uso'});
+	}
+})
+
+
+//editar conta
+app.put('/conta:id', async(requisicao, resposta) => {
+	try{
+		const{id} = requisicao.params;
+		const{nome} = requisicao.body;
+		
+		const comandoSQL = `
+			UPDATE "contaBancaria" 
+			SET "nome" =$1 
+			WHERE "idcategoria" =$2
+			RETURNING *;
+			`
+		const resultado = await conexaoBanco.query(comandoSQL, [id, nome])
+		resposta.status(200).json(resultado.rows[0])
+	}catch(erro: any){
+		console.log('Erro ao deletar categoria', erro)
+		resposta.status(500).json({mensagem: 'Não é possível excluir categoria em uso'});
+	}
+})
+
+//deletar conta
+app.delete('/conta:id', async(requisicao, resposta) => {
+	try{
+		const{id} = requisicao.params;
+		const comandoSQL = `
+			DELETE FROM "contaBancaria" WHERE "idcategoria" =$1;
+		await conexaoBanco.query(comandoSQL, [id])
+		resposta.status(200).send();
+	}catch(erro: any){
+		console.error('Erro ao deletar categoria', erro)
+		resposta.status(500).json({mensagem: 'Não é possível excluir o dele'});
+	}
+})
+
+-----------------------------------------------------------------------------------------------------------------------------------------
 	
 
 
-
+		
+		
 
 
 
